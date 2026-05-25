@@ -164,6 +164,77 @@ class AdminController extends Controller
         // Supprimer l'offre (les candidatures associées seront supprimées en cascade)
         $job->delete();
 
-        return back()->with('success', 'L\'offre d' . "'emploi a été supprimée définitivement.");
+        return back()->with('success', "L'offre d'emploi a été supprimée définitivement.");
+    }
+
+    /**
+     * Espace d'analyses et graphiques détaillés pour l'administrateur (Module 12)
+     */
+    public function stats()
+    {
+        $stats = [
+            'total_candidates' => User::where('role', 'candidat')->count(),
+            'total_recruiters' => User::where('role', 'recruteur')->count(),
+            'total_companies' => Company::count(),
+            'total_jobs' => JobListing::count(),
+            'active_jobs' => JobListing::where('is_active', true)->count(),
+            'total_applications' => Application::count(),
+        ];
+
+        // Taux de recrutement global
+        $accepted = Application::where('status', 'Acceptée')->count();
+        $stats['recruitment_rate'] = $stats['total_applications'] > 0 
+            ? round(($accepted / $stats['total_applications']) * 100, 1) 
+            : 0;
+
+        // Répartitions pour les graphiques Chart.js (passées en JSON)
+        $status_distribution = [
+            'En attente' => Application::where('status', 'En attente')->count(),
+            'Acceptée' => $accepted,
+            'Refusée' => Application::where('status', 'Refusée')->count(),
+            'Entretien programmé' => Application::where('status', 'Entretien programmé')->count(),
+        ];
+
+        $contract_distribution = [
+            'CDI' => JobListing::where('contract_type', 'CDI')->count(),
+            'CDD' => JobListing::where('contract_type', 'CDD')->count(),
+            'Stage' => JobListing::where('contract_type', 'Stage')->count(),
+            'Alternance' => JobListing::where('contract_type', 'Alternance')->count(),
+        ];
+
+        // Distribution par Catégories de postes
+        $categories = JobListing::select('category', \Illuminate\Support\Facades\DB::raw('count(*) as count'))
+            ->groupBy('category')
+            ->orderBy('count', 'desc')
+            ->take(8)
+            ->get();
+
+        $category_distribution = [];
+        foreach ($categories as $cat) {
+            $category_distribution[$cat->category ?? 'Non spécifié'] = $cat->count;
+        }
+
+        // Leaderboard des entreprises partenaires
+        $companies_stats = Company::with(['jobs.applications'])->get()->map(function ($company) {
+            $jobs_count = $company->jobs->count();
+            $apps_count = $company->jobs->sum(function ($job) {
+                return $job->applications->count();
+            });
+            $accepted_count = $company->jobs->sum(function ($job) {
+                return $job->applications->where('status', 'Acceptée')->count();
+            });
+            $recruitment_rate = $apps_count > 0 ? round(($accepted_count / $apps_count) * 100, 1) : 0;
+
+            return [
+                'id' => $company->id,
+                'name' => $company->name,
+                'logo_url' => $company->logo_url,
+                'jobs_count' => $jobs_count,
+                'apps_count' => $apps_count,
+                'recruitment_rate' => $recruitment_rate,
+            ];
+        })->sortByDesc('apps_count')->values()->all();
+
+        return view('admin.stats', compact('stats', 'status_distribution', 'contract_distribution', 'category_distribution', 'companies_stats'));
     }
 }

@@ -77,9 +77,14 @@
                     ];
                     $colorClass = $statusColors[$application->status] ?? 'bg-slate-50 text-slate-800 border-slate-200';
                 @endphp
-                <span class="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold border {{ $colorClass }} shadow-sm">
-                    Statut actuel : {{ $application->status }}
-                </span>
+                <div class="flex items-center gap-3 flex-wrap">
+                    <a href="{{ route('recruteur.applications.pdf', $application->id) }}" target="_blank" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-5 rounded-xl text-sm shadow-md hover:shadow-lg transition flex items-center gap-1.5 border border-indigo-500">
+                        <i data-lucide="file-text" class="w-4 h-4"></i> Exporter Dossier RH (PDF)
+                    </a>
+                    <span class="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold border {{ $colorClass }} shadow-sm">
+                        Statut actuel : {{ $application->status }}
+                    </span>
+                </div>
             </div>
         </header>
 

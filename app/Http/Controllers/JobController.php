@@ -6,6 +6,8 @@ use App\Models\JobListing;
 use App\Models\Company;
 use App\Models\Application;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 
 class JobController extends Controller
 {
@@ -231,5 +233,63 @@ class JobController extends Controller
         }
 
         return view('jobs.show', compact('job'));
+    }
+
+    /**
+     * 🆕 ACCÈS PUBLIC : Soumettre une candidature rapide sans compte (Invité)
+     */
+    public function applyAsGuest(Request $request, JobListing $job)
+    {
+        // 1. Validation stricte des données et du CV
+        $request->validate([
+            'guest_name'  => 'required|string|max:255',
+            'guest_email' => 'required|email|max:255',
+            'cv'          => 'required|file|mimes:pdf|max:2048', // Uniquement PDF, max 2Mo
+        ]);
+
+        // 2. Upload sécurisé du CV dans le stockage public (XAMPP storage/app/public/cvs/guests)
+        $cvPath = $request->file('cv')->store('cvs/guests', 'public');
+
+        // 3. Création de la candidature (Marquée en attente de vérification d'email)
+        $application = Application::create([
+            'job_id'      => $job->id,
+            'user_id'     => null, 
+            'guest_name'  => $request->guest_name,
+            'guest_email' => $request->guest_email,
+            'cv_path'     => $cvPath,
+            'status'      => 'En attente', 
+        ]);
+
+        // 4. Génération d'une URL de vérification sécurisée et signée temporairement (Valable 30 min)
+        $verificationUrl = URL::temporarySignedRoute(
+            'guest.application.verify',
+            now()->addMinutes(30),
+            ['id' => $application->id, 'token' => sha1($application->guest_email)]
+        );
+
+        // 5. Envoi de l'email de validation via le Mailable Laravel
+        Mail::to($application->guest_email)->send(new \App\Mail\GuestVerificationMail($verificationUrl, $application));
+
+        return back()->with('success', 'Votre candidature a été pré-enregistrée ! Veuillez vérifier votre boîte mail pour la valider.');
+    }
+
+    /**
+     * 🆕 ACCÈS PUBLIC : Validation du lien temporaire reçu par e-mail
+     */
+    public function verifyGuestEmail($id, $token)
+    {
+        $application = Application::findOrFail($id);
+
+        // Vérification du token de sécurité de l'e-mail
+        if (sha1($application->guest_email) !== $token) {
+            abort(403, 'Lien de validation invalide.');
+        }
+
+        // Validation officielle de la candidature
+        $application->update([
+            'email_verified_at' => now(),
+        ]);
+
+        return redirect()->route('jobs.public_index')->with('success', 'Votre candidature a été validée avec succès et transmise au recruteur !');
     }
 }

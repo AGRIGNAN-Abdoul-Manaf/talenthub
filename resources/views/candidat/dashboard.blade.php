@@ -60,9 +60,14 @@
                 <h1 class="text-3xl font-extrabold text-slate-900 font-sora">Bienvenue, {{ auth()->user()->name }}</h1>
                 <p class="text-sm text-slate-500">Suivez l'état d'avancement de vos candidatures et de vos entretiens.</p>
             </div>
-            <a href="{{ route('jobs.public_index') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-5 rounded-xl text-sm shadow-md hover:shadow-lg transition flex items-center gap-1.5">
-                <i data-lucide="search" class="w-4 h-4"></i> Explorer les offres
-            </a>
+            <div class="flex items-center gap-3 flex-wrap">
+                <a href="{{ route('candidat.cv.pdf') }}" target="_blank" class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-5 rounded-xl text-sm shadow-md hover:shadow-lg transition flex items-center gap-1.5 border border-slate-750">
+                    <i data-lucide="file-text" class="w-4 h-4"></i> Télécharger mon CV (PDF)
+                </a>
+                <a href="{{ route('jobs.public_index') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-5 rounded-xl text-sm shadow-md hover:shadow-lg transition flex items-center gap-1.5">
+                    <i data-lucide="search" class="w-4 h-4"></i> Explorer les offres
+                </a>
+            </div>
         </header>
 
         @if(session('success'))

@@ -18,7 +18,8 @@
                         </span>
                         <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ $job->title }}</h1>
                     </div>
-                    @if(auth()->check() && auth()->user()->hasRole('candidat'))
+                    {{-- Harmonisation de la vérification du rôle ici --}}
+                    @if(auth()->check() && auth()->user()->role === 'candidat')
                         <form action="{{ route('jobs.toggleFavorite', $job->id) }}" method="POST" class="inline shrink-0">
                             @csrf
                             <button type="submit" class="p-3 rounded-2xl border border-slate-200 text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition shadow-sm bg-white" title="Ajouter aux favoris">
@@ -26,7 +27,7 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-rose-600 fill-current" viewBox="0 0 20 20" fill="currentColor">
                                         <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
                                     </svg>
-                                @else
+                                
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                                     </svg>
@@ -85,7 +86,7 @@
                             </a>
                         </div>
                     @else
-                        <!-- Formulaire complet et premium de candidature -->
+                        <!-- Formulaire complet de candidature -->
                         <div class="bg-slate-50 border border-slate-200 p-6 rounded-2xl space-y-5">
                             <h3 class="text-lg font-bold text-slate-900 font-sora flex items-center gap-2">
                                 <i data-lucide="send" class="w-5 h-5 text-indigo-600"></i> Postuler à cette offre
@@ -176,23 +177,27 @@
                 </div>
             @endauth
         </div>
-
-        <script src="https://unpkg.com/lucide@latest"></script>
-        <script>
-            function updateFileName(input, targetId) {
-                const target = document.getElementById(targetId);
-                if (input.files && input.files.length > 0) {
-                    target.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i> Fichier sélectionné : <span class="text-slate-800 underline font-normal ml-1">${input.files[0].name}</span>`;
-                    target.classList.remove('hidden');
-                    lucide.createIcons();
-                } else {
-                    target.textContent = '';
-                    target.classList.add('hidden');
-                }
-            }
-            lucide.createIcons();
-        </script>
-
     </div>
 </div>
 @endsection
+
+{{-- Déplacement des scripts dans une stack dédiée (très recommandé sous Laravel) --}}
+@push('scripts')
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+    function updateFileName(input, targetId) {
+        const target = document.getElementById(targetId);
+        if (input.files && input.files.length > 0) {
+            target.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i> Fichier sélectionné : <span class="text-slate-800 underline font-normal ml-1">${input.files[0].name}</span>`;
+            target.classList.remove('hidden');
+            lucide.createIcons();
+        } else {
+            target.textContent = '';
+            target.classList.add('hidden');
+        }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        lucide.createIcons();
+    });
+</script>
+@endpush
